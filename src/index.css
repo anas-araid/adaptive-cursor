@@ -1,0 +1,8 @@
+:root{
+  cursor: none;
+  --cursor-x: 10px;
+  --cursor-y: 10px;
+  --cursor-width: 16px;
+  --cursor-height: 16px;
+  --cursor-radius: 50px;
+}
