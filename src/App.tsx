@@ -1,8 +1,6 @@
-import { motion, MotionStyle, MotionValue } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { animated, useSpring } from 'react-spring';
 import styled from 'styled-components'
-import { useMousePosition, } from './hooks';
 import './index.css';
 
 const BUTTON_HEIGHT = 35;
@@ -29,16 +27,10 @@ const App = (): JSX.Element => {
       height: '16px',
       borderRadius: '50px',
       opacity: '70%',
+      transform: ''
     }),
     []
   );
-
-  // const [buttonStyle, buttonApi] = useSpring(
-  //   () => ({
-  //     transform: ''
-  //   }),
-  //   []
-  // );
 
   function clamp(input: number, min: number, max: number): number {
     return input < min ? min : input > max ? max : input;
@@ -48,11 +40,6 @@ const App = (): JSX.Element => {
     const mapped: number = ((current - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
     return clamp(mapped, out_min, out_max);
   }
-
-
-  // useEffect(() => {
-  //   console.log('hover', cursorStatus);
-  // }, [cursorStatus]);
 
   const updateMousePosition = (e: MouseEvent) => {
     cursorApi.set({
@@ -65,41 +52,32 @@ const App = (): JSX.Element => {
     });
   };
 
-  const updateDistanceMove = (e: MouseEvent) => {
-    const event = e as MouseEvent//React.MouseEvent<HTMLButtonElement, MouseEvent>;)
-    console.log('(event.target as HTMLElement).className !== adaptive)', (event.target as HTMLElement).className !== 'adaptive');
-    
-    if ((event.target as HTMLElement).className !== 'adaptive') {
+  const updateDistanceMove = (event: MouseEvent) => {
+    if (!(event.target as HTMLElement).classList.contains('adaptive')) {
       return;
     } 
-
+    
     if (cursorStatus.elementLeft) {
-      // const asd = structuredClone(style);
       const clientX = event.clientX;
-      // console.log('clientX', clientX)
-
       const elementX = cursorStatus?.elementLeft;
-      // console.log('elementX', elementX)
 
       const distance = clientX > elementX ? (clientX - elementX) : 0;
+      
       if (distance < 2 || distance > BUTTON_WIDTH) {
         (event.target as HTMLElement).style.transform = '';
       }else{
-        const value = interpolate(distance, 0, 70, -3, 3);
-        // (event.target as HTMLElement).style.transform = buttonStyle.transform
+        const value = interpolate(distance, 0, 70, -8, 5);
+
+        cursorApi.set({
+          transform: `translate(${value}px, 0px)`
+        });
         (event.target as HTMLElement).style.transform = `translate(${value}px, 0px)`;
       }
-      // buttonApi.set({
-      //   translateX: 2
-      // });
     }
 
   };
 
   const updateDistanceOut = (event: MouseEvent) => {
-    // if (event.target) {
-    //   (event.target as HTMLElement).style.transform = 'translate(0px, 0px)';
-    // }
     (event.target as HTMLElement).style.transform = '';
 
   };
@@ -112,6 +90,33 @@ const App = (): JSX.Element => {
     }
   }, [])
 
+  const handleOnButtonDown = (event: MouseEvent) => {
+    if (!(event.target as HTMLElement).classList.contains('adaptive')) {
+      return;
+    } 
+    (event.target as HTMLElement).style.scale = '0.95'
+    cursorApi.set({
+      opacity: '35%'
+    });
+  }
+
+  const handleOnButtonUp = (event: MouseEvent) => {
+    if (!(event.target as HTMLElement).classList.contains('adaptive')) {
+      return;
+    }
+    (event.target as HTMLElement).style.scale = '1';
+    const { elementLeft, elementTop, height, width} = cursorStatus;
+
+    cursorApi.set({
+      left: `${elementLeft}px`,
+      top: `${elementTop}px`,
+      height: `${height}px`,
+      width: `${width}px`,
+      borderRadius: `${BUTTON_RADIUS}px`,
+      opacity: '20%',
+    });
+  };
+
   useEffect(() => {
     const { isHover, elementLeft, elementTop, height, width} = cursorStatus;
 
@@ -123,10 +128,12 @@ const App = (): JSX.Element => {
           height: `${height}px`,
           width: `${width}px`,
           borderRadius: `${BUTTON_RADIUS}px`,
-          opacity: '30%',
+          opacity: '20%',
         });
         window.addEventListener('mousemove', updateDistanceMove);
         window.addEventListener('mouseout', updateDistanceOut);
+        window.addEventListener('mousedown', handleOnButtonDown);
+        window.addEventListener('mouseup', handleOnButtonUp);
       }
     } else {
       window.addEventListener('mousemove', updateMousePosition);
@@ -136,13 +143,14 @@ const App = (): JSX.Element => {
       window.removeEventListener('mousemove', updateMousePosition);
       window.removeEventListener('mousemove', updateDistanceMove);
       window.removeEventListener('mouseout', updateDistanceOut);
+      window.addEventListener('mousedown', handleOnButtonDown);
+      window.addEventListener('mouseup', handleOnButtonUp);
     };
   }, [cursorStatus]);
 
   const handleMouseEnter = (e: unknown) => {
     const event = e as React.MouseEvent<HTMLButtonElement, MouseEvent>;
-    console.log('event', event);
-    const left = event.currentTarget.offsetLeft;
+    // const left = event.currentTarget.offsetLeft;
     setCursorStatus({
       isHover: true,
       elementLeft: event.currentTarget.offsetLeft,
@@ -194,7 +202,6 @@ const Button = styled(animated.button)`
   height: ${BUTTON_HEIGHT}px;
   width: ${BUTTON_WIDTH}px;
   border-radius: ${BUTTON_RADIUS}px;
-  /* border: 1px solid red; */
   border: 0;
   background-color: white;
   cursor: none;
@@ -212,4 +219,5 @@ const Cursor = styled(animated.div)`
   transition-duration: 200ms;
   transition-timing-function: cubic-bezier(.215, .61, .355, 1);
   transition-property: width, height, top, left, opacity;
+  mix-blend-mode: multiply;
 `;
